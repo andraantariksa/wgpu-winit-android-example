@@ -20,7 +20,7 @@ fn fs_main() -> [[location(0)]] vec4<f32> {
 "#;
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
-    let instance = wgpu::Instance::new(wgpu::Backends::all());
+    let instance = wgpu::Instance::new(wgpu::BackendBit::all());
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::default(),
@@ -35,7 +35,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
             &wgpu::DeviceDescriptor {
                 label: None,
                 features: wgpu::Features::empty(),
-                limits: wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
+                limits: wgpu::Limits::default(),
             },
             None,
         )
@@ -46,6 +46,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     let shader = device.create_shader_module(&wgpu::ShaderModuleDescriptor {
         label: None,
         source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(SHADER)),
+        flags: wgpu::ShaderFlags::all(),
     });
 
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -76,7 +77,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     });
 
     let mut sc_desc = wgpu::SwapChainDescriptor {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
         format: swapchain_format,
         width: 0,
         height: 0,
