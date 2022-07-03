@@ -11,11 +11,11 @@ crate-type = ["lib", "cdylib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu = "0.9"
-winit = "0.25"
-ndk-glue = { version = "0.3", features = ["logger"] }
-async-executor = "1.0"
-pollster = "0.2"
+wgpu = "0.13"
+winit = "0.26"
+ndk-glue = { version = "0.6", features = ["logger"] }
+async-executor = "1.4.1"
+pollster = "0.2.5"
 log = "0.4"
 android_logger = "*"
 
