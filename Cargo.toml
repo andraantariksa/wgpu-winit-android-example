@@ -13,7 +13,7 @@ crate-type = ["lib", "cdylib"]
 [dependencies]
 wgpu = "0.13"
 winit = "0.26"
-ndk-glue = { version = "0.6", features = ["logger"] }
+ndk-glue = { version = "0.5.0", features = ["logger"] }
 async-executor = "1.4.1"
 pollster = "0.2.5"
 log = "0.4"
