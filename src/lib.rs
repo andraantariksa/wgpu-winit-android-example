@@ -23,7 +23,7 @@ fn fs_main() -> @location(0) vec4<f32> {
 "#;
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
-    let instance = wgpu::Instance::new(wgpu::Backends::VULKAN);
+    let instance = wgpu::Instance::new(wgpu::Backends::all());
     let adapter = instance
         .request_adapter(&wgpu::RequestAdapterOptions {
             power_preference: wgpu::PowerPreference::default(),
