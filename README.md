@@ -1,13 +1,16 @@
 # `wgpu` & `winit` Android Example
 
-This example use `wgpu` v0.13, checkout the other branch for the other version.
-
 Tested on
 
 - Realme 9 Pro Android 12
 - Asus Zenfone Max Pro Android 9
 
 using Vulkan and OpenGL backend.
+
+## Versions
+
+- [v0.13](v0.13/)
+- [v0.9](v0.9/)
 
 ## Requirements
 
