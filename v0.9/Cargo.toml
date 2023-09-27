@@ -17,7 +17,7 @@ ndk-glue = { version = "0.3", features = ["logger"] }
 async-executor = "1.0"
 pollster = "0.2"
 log = "0.4"
-android_logger = "*"
+android_logger = "0.9"
 
 [package.metadata.android]
 build_targets = ["armv7-linux-androideabi", "aarch64-linux-android"]

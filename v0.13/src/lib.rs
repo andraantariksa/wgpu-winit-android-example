@@ -1,6 +1,5 @@
-use std::borrow::Cow;
 use android_logger::Config;
-use log::{debug, Level, log};
+use log::{debug, LevelFilter};
 use wgpu::{ColorTargetState, ColorWrites, PresentMode, SurfaceConfiguration, TextureViewDescriptor};
 use winit::{
     event::{Event, WindowEvent},
@@ -179,7 +178,7 @@ ndk_glue::main(backtrace = "on", logger(level = "debug", tag = "wgpu"))
 )]
 fn main() {
     android_logger::init_once(
-        Config::default().with_min_level(Level::Trace),
+        Config::default().with_max_level(LevelFilter::Trace),
     );
     let event_loop = EventLoop::new();
     let window = Window::new(&event_loop).unwrap();
