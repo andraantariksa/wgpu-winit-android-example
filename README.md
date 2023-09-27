@@ -7,14 +7,11 @@ Tested on
 
 using Vulkan and OpenGL backend.
 
-## Versions
-
-- [v0.13](v0.13/)
-- [v0.9](v0.9/)
+See other branch for other wgpu version example.
 
 ## Requirements
 
-- `cargo apk`. You can install it by running `cargo install cargo-apk`
+- [cargo apk](https://github.com/rust-mobile/cargo-apk)
 - Toolchain target. You can install it by running `rustup target install armv7-linux-androideabi aarch64-linux-android i686-linux-android x86_64-linux-android`
 
 ## Getting Started
