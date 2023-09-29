@@ -1,23 +1,33 @@
 [package]
-name = "wgpu-android"
+name = "wgpu_android"
 version = "0.1.0"
-authors = ["msiglreith <m.siglreith@gmail.com>"]
+authors = ["msiglreith <m.siglreith@gmail.com>", "Andra Antariksa <andra.antariksa@gmail.com>"]
 edition = "2018"
 resolver = "2"
 
 [lib]
-crate-type = ["lib", "cdylib"]
+name = "wgpu_android_lib"
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[[bin]]
+name = "wgpu_android"
+path = "src/lib.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-wgpu = "0.13"
-winit = "0.26"
-ndk-glue = { version = "0.5.0", features = ["logger"] }
-async-executor = "1.4.1"
-pollster = "0.2.5"
+wgpu = "0.17.0"
+winit = "0.28.6"
+pollster = "0.3.0"
 log = "0.4"
+
+[target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.13.3"
+winit = { version = "0.28.6", default-features = false, features = ["android-game-activity"] }
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+winit = "0.28.6"
 
 [package.metadata.android]
 build_targets = ["armv7-linux-androideabi", "aarch64-linux-android"]

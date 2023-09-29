@@ -1,5 +1,7 @@
 # `wgpu` & `winit` Android Example
 
+![Triangle](assets/1.jpg)
+
 Tested on
 
 - Realme 9 Pro Android 12
@@ -17,10 +19,5 @@ See other branch for other wgpu version example.
 ## Getting Started
 
 1. Connect Android device
-2. `cargo apk run`
+2. `cargo apk run --lib`
 
-## Screenshot
-
-You should see a triangle as below
-
-![Triangle](assets/1.jpg)
