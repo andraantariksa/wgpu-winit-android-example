@@ -24,7 +24,7 @@ log = "0.4"
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.13.3"
-winit = { version = "0.28.6", default-features = false, features = ["android-game-activity"] }
+winit = { version = "0.28.6", features = ["android-game-activity"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 winit = "0.28.6"

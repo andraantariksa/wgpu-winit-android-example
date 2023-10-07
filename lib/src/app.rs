@@ -3,7 +3,7 @@ use log::debug;
 use wgpu::{ColorTargetState, ColorWrites, PresentMode, SurfaceConfiguration, TextureViewDescriptor};
 use winit::{
     event::{Event, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
     window::Window,
 };
 use winit::dpi::PhysicalSize;
@@ -24,43 +24,39 @@ fn fs_main() -> @location(0) vec4<f32> {
 "#;
 
 struct Renderer {
-    adapter: wgpu::Adapter,
-    device: wgpu::Device,
-    queue: wgpu::Queue,
-    shader: wgpu::ShaderModule,
     render_pipeline: wgpu::RenderPipeline,
 }
 
-
+struct SurfaceState {
+    surface: wgpu::Surface,
+    view_format: wgpu::TextureFormat,
+    alpha_mode: wgpu::CompositeAlphaMode,
+}
 
 struct App {
-    window: Window,
     instance: wgpu::Instance,
     renderer: Option<Renderer>,
-    surface: Option<wgpu::Surface>,
+    surface_state: Option<SurfaceState>,
     last_time: Instant,
+    adapter: wgpu::Adapter,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
 }
 
 impl App {
-    fn new(window: Window) -> Self {
+    async fn new() -> Self {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
+            backends: if cfg!(not(target_os = "android")) {
+                wgpu::Backends::all()
+            } else {
+                wgpu::Backends::GL
+            },
             dx12_shader_compiler: wgpu::Dx12Compiler::Dxc {
                 dxc_path: None,
                 dxil_path: None,
             },
         });
-        Self {
-            window,
-            instance,
-            renderer: None,
-            surface: None,
-            last_time: Instant::now(),
-        }
-    }
-
-    async fn create_renderer(&mut self) {
-        let adapter = self.instance
+        let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
                 power_preference: wgpu::PowerPreference::default(),
                 force_fallback_adapter: false,
@@ -70,30 +66,42 @@ impl App {
             .expect("Failed to find an appropriate adapter");
 
         // Create the logical device and command queue
+        let limits = wgpu::Limits::downlevel_webgl2_defaults();
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
                     features: wgpu::Features::empty(),
-                    limits: wgpu::Limits::downlevel_defaults(),
+                    limits,
                 },
                 None,
             )
             .await
             .expect("Failed to create device");
+        Self {
+            instance,
+            device,
+            adapter,
+            queue,
+            renderer: None,
+            surface_state: None,
+            last_time: Instant::now(),
+        }
+    }
 
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    async fn create_renderer(&mut self) {
+        let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
             source: wgpu::ShaderSource::Wgsl(SHADER.into()),
         });
 
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        let pipeline_layout = self.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
             bind_group_layouts: &[],
             push_constant_ranges: &[],
         });
 
-        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let render_pipeline = self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
@@ -105,7 +113,7 @@ impl App {
                 module: &shader,
                 entry_point: "fs_main",
                 targets: &[Some(ColorTargetState {
-                    format: surface_format,
+                    format: self.surface_state.as_ref().unwrap().view_format,
                     blend: None,
                     write_mask: ColorWrites::all(),
                 })],
@@ -114,55 +122,58 @@ impl App {
             depth_stencil: None,
             multisample: wgpu::MultisampleState::default(),
             multiview: None,
-        })
+        });
 
         self.renderer = Some(Renderer {
-            queue,
-            device,
-            adapter,
-            shader,
             render_pipeline,
         });
     }
 
-    fn configure_swapchain(&mut self) {
-        let mut surface_configuration = SurfaceConfiguration {
+    fn setup_swapchain(&mut self, size: PhysicalSize<u32>) {
+        let surface_state = self.surface_state.as_ref().unwrap();
+        let surface_configuration = SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
-            width: 1,
-            height: 1,
+            format: surface_state.view_format,
+            width: size.width,
+            height: size.height,
             present_mode: PresentMode::Fifo,
-            alpha_mode: wgpu::CompositeAlphaMode::Inherit,
-            view_formats: vec![],
+            alpha_mode: surface_state.alpha_mode,
+            view_formats: vec![surface_state.view_format],
         };
+        surface_state.surface.configure(&self.device, &surface_configuration);
     }
 
-    fn create_surface(&mut self) {
+    fn resumed<T>(&mut self, event_loop: &EventLoopWindowTarget<T>) {
+        let window = Window::new(event_loop).unwrap();
         let surface = unsafe {
-            self.instance.create_surface(&self.window)
+            self.instance.create_surface(&window)
         }.unwrap();
-        self.surface = Some(surface);
-    }
+        let cap = surface.get_capabilities(&self.adapter);
+        self.surface_state = Some(SurfaceState {
+            surface,
+            view_format: cap.formats[0],
+            alpha_mode: cap.alpha_modes[0],
+        });
 
-    fn resumed(&mut self) {
-        self.create_surface();
-        self.create_renderer();
+        self.setup_swapchain(window.inner_size());
+        pollster::block_on(self.create_renderer());
     }
 
     fn suspended(&mut self) {
         self.renderer.take();
+        self.surface_state.take();
     }
 
     fn resize(&mut self, window_size: PhysicalSize<u32>) {
-        self.configure_swapchain();
+        self.setup_swapchain(window_size);
     }
 
     fn render(&mut self) {
-        if let (Some(surface), Some(renderer)) = (&self.surface, &self.renderer) {
-            let render_texture = surface.get_current_texture().unwrap();
+        if let (Some(surface_state), Some(renderer)) = (&self.surface_state, &self.renderer) {
+            let render_texture = surface_state.surface.get_current_texture().unwrap();
             let render_texture_view = render_texture.texture.create_view(&TextureViewDescriptor::default());
 
-            let mut encoder = renderer.device
+            let mut encoder = self.device
                 .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
             {
                 let t = (self.last_time.elapsed().as_secs_f64() / 5.0).sin();
@@ -183,26 +194,22 @@ impl App {
                     })],
                     depth_stencil_attachment: None,
                 });
-                rpass.set_pipeline(renderer.render_pipeline.as_ref().unwrap());
+                rpass.set_pipeline(&renderer.render_pipeline);
                 rpass.draw(0..3, 0..1);
             }
 
-            renderer.queue.submit(Some(encoder.finish()));
+            self.queue.submit(Some(encoder.finish()));
 
             render_texture.present();
         }
     }
 }
 
-pub async fn run<T: std::fmt::Debug>(mut event_loop: EventLoop<T>) {
-    let window = Window::new(&event_loop).unwrap();
-    let mut app = App::new(window);
+pub fn run<T: std::fmt::Debug>(mut event_loop: EventLoop<T>) {
+    let mut app = pollster::block_on(App::new());
 
-    // It's not recommended to use `run` on Android because it will call
-    // `std::process::exit` when finished which will short-circuit any
-    // Java lifecycle handling
-    event_loop.run_return(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Poll;
+    event_loop.run_return(move |event, event_loop, control_flow| {
+        *control_flow = ControlFlow::Wait;
         match event {
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
@@ -215,42 +222,7 @@ pub async fn run<T: std::fmt::Debug>(mut event_loop: EventLoop<T>) {
             Event::Resumed => {
                 debug!("resumed");
 
-                app.resumed();
-
-                // let _surface = unsafe { instance.create_surface(&window) }.unwrap();
-                // let surface_caps = _surface.get_capabilities(&adapter);
-                // let surface_format = surface_caps.formats.iter()
-                //     .copied().find(|f| f.is_srgb())
-                //     .unwrap_or(surface_caps.formats[0]);
-                // surface_configuration.present_mode = surface_caps.present_modes[0];
-                // surface_configuration.alpha_mode = surface_caps.alpha_modes[0];
-                // surface_configuration.format = surface_format;
-                //
-                // render_pipeline = Some(device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                //     label: None,
-                //     layout: Some(&pipeline_layout),
-                //     vertex: wgpu::VertexState {
-                //         module: &shader,
-                //         entry_point: "vs_main",
-                //         buffers: &[],
-                //     },
-                //     fragment: Some(wgpu::FragmentState {
-                //         module: &shader,
-                //         entry_point: "fs_main",
-                //         targets: &[Some(ColorTargetState {
-                //             format: surface_format,
-                //             blend: None,
-                //             write_mask: ColorWrites::all(),
-                //         })],
-                //     }),
-                //     primitive: wgpu::PrimitiveState::default(),
-                //     depth_stencil: None,
-                //     multisample: wgpu::MultisampleState::default(),
-                //     multiview: None,
-                // }));
-                //
-                // _surface.configure(&device, &surface_configuration);
-                // surface = Some(_surface);
+                app.resumed(event_loop);
             }
             Event::Suspended => {
                 debug!("suspended");
