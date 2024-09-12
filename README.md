@@ -19,5 +19,11 @@ See other branch for other wgpu version example.
 ## Getting Started
 
 - Open the project in Android Studio
-- Update ndkVersion in app/gradle.properties to match one you have installed.
+- Update `ndkVersion` in `app/local.properties` to match one you have installed. For example
+
+```
+ndkVersion=27.1.12297006
+```
+
+- Sync gradle
 - Press **run 'app'** once the project has been loaded

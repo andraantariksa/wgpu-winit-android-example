@@ -6,6 +6,8 @@ import com.google.androidgamesdk.GameActivity
 class MainActivity : GameActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Do something...
     }
 
     companion object {

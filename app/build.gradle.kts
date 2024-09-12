@@ -1,3 +1,12 @@
+import java.util.Properties
+
+val localProperties: Properties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.inputStream())
+    }
+}
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -7,7 +16,7 @@ plugins {
 android {
     namespace = "com.example.wgpuapplication"
     compileSdk = 34
-    ndkVersion = "26.1.10909125"
+    ndkVersion = localProperties.getProperty("ndkVersion")
 
     defaultConfig {
         applicationId = "com.example.wgpuapplication"
