@@ -16,12 +16,13 @@ fn android_main(app: AndroidApp) {
 
     let event_loop: EventLoop<AndroidApp> = EventLoopBuilder::with_user_event()
         .with_android_app(app)
-        .build();
+        .build()
+        .unwrap();
     app::run(event_loop);
 }
 
 #[allow(dead_code)]
 fn main() {
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     app::run(event_loop);
 }
