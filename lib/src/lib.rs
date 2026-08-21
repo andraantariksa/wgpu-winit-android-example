@@ -8,13 +8,12 @@ mod app;
 #[cfg(target_os = "android")]
 #[no_mangle]
 fn android_main(app: AndroidApp) {
-    use winit::event_loop::EventLoopBuilder;
     use winit::platform::android::EventLoopBuilderExtAndroid;
     use log::LevelFilter;
 
     android_logger::init_once(android_logger::Config::default().with_max_level(LevelFilter::Trace));
 
-    let event_loop: EventLoop<AndroidApp> = EventLoopBuilder::with_user_event()
+    let event_loop: EventLoop<AndroidApp> = EventLoop::<AndroidApp>::with_user_event()
         .with_android_app(app)
         .build()
         .unwrap();
